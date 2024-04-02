@@ -1,0 +1,34 @@
+var mailApp = MailApp;
+var app = SpreadsheetApp;
+var planilha = SpreadsheetApp.getActiveSpreadsheet();
+var aba = planilha.getSheetByName("Página1");
+var ui = app.getUi();
+
+
+function sendMails() {
+  var values = aba.getDataRange().getValues();
+
+
+ for(var row=0; row < values.length; row++){
+   if(row > 0) {
+     var moeda01 = values[row][14];
+     var moeda02 = values[row][11];
+     var salarioLiquido = moeda01.toLocaleString('pt-br', {minimumFractionDigits: 2});
+     var auxHomeOfiice = moeda02.toLocaleString('pt-br', {minimumFractionDigits: 2});
+        
+     mailApp.sendEmail(values[row][15], "Teste", "Olá " + values[row][1] + "\n\nSua remuneração referente ao mês de " + values[row][16] + " é de R$ " + salarioLiquido + "\n\n" + '<b> Lembrando que você tem até o dia </b>' + " " + values[row][17] + " " + '<b> para enviar a NF para os emails: </b>'
+      + "\n\n- financeiro@driven.com.br \n- dp@respondeai.com.br" + "\n\nValores: \nR$ " + salarioLiquido + "\nR$ " + auxHomeOfiice + " - Auxílio Home Office" + "\n\nCaso não envie a nota no prazo, o pagamento só será raelizado após o dia " + values[row][18]);
+  
+   }
+  }
+
+
+}
+
+
+function onOpen (){
+ ui.createMenu("Emails").addItem("Enviar email", "sendMails").addToUi();
+}
+
+
+

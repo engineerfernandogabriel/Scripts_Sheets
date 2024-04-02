@@ -1,0 +1,225 @@
+var mailApp = MailApp;
+var app = SpreadsheetApp;
+var ui = app.getUi();
+
+function onOpen(){
+  ui.createMenu("AtualizarSaldo").addItem("Atualizar", "enviarMensagemSlack").addToUi();
+}
+
+const getTokenSlack = (() => {
+    const token = "CHAVE_AQUI";
+    
+    return () => {
+        return token;
+    };
+})();
+
+const getChannelSlack = (() => {
+    const channel = "CANAL_AQUI";
+    
+    return () => {
+        return channel;
+    };
+})();
+
+function enviarMensagemSlack() {
+  var hoje = new Date().getDay();
+
+  if(hoje > 0 && hoje < 6) {
+    var token = getTokenSlack();
+    var channel = getChannelSlack();
+    var mensagem = construirMensagem();
+    var url = "https://slack.com/api/chat.postMessage";
+    var payload = {
+      "channel": channel,
+      "text": mensagem
+    };
+
+    var options = {
+      "method": "post",
+      "contentType": "application/json; charset=utf-8",
+      "headers": {
+        "Authorization": "Bearer " + token
+      },
+      "payload": JSON.stringify(payload)
+    };
+
+    try {
+      var response = UrlFetchApp.fetch(url, options);
+      Logger.log(response.getContentText());
+    } catch (error) {
+      Logger.log("Erro ao enviar mensagem para o Slack: " + error);
+    }
+  } else {
+      pass;
+  }
+}
+
+function construirMensagem() {
+  var planilha = SpreadsheetApp.getActiveSpreadsheet();
+  var mensagem = "";
+  
+  var mensagemCLT = ":attention: CLT\n" + construirMensagemCLT(planilha, mensagem);      
+  var mensagemPJ = "\n\n:attention: PJ\n" + construirMensagemPJ(planilha, mensagem);
+
+  mensagem = mensagemCLT + "\n---------------------------------------------------------------------\n" + mensagemPJ;
+
+  return mensagem;
+}
+
+function construirMensagemCLT(planilha, mensagem){
+  var abaCLT = planilha.getSheetByName("CLT 2023");
+  var dadosCLT = abaCLT.getDataRange().getValues();
+
+  for (var i = 3; i < dadosCLT.length; i++){
+    if(dadosCLT[i][2] != ""){
+      var condition = true;
+      var mensagemMap = new Map()
+      var ano = dadosCLT[i-1][1]
+
+      if(verificarAno(ano) === "maior"){
+        while(condition){              
+          var nome = dadosCLT[i][1];
+          var saldo = Math.floor(dadosCLT[i][6]);
+          
+          if (saldo >= 1) {
+            mensagemMap.set(nome, saldo);
+          }
+
+          var currentI = i;
+          currentI++
+
+          if(currentI >= dadosCLT.length || dadosCLT[currentI][2] === "" ){
+            condition = false;
+          }
+
+          i++;
+        }
+      }
+
+      if(verificarAno(ano) === "igual"){
+        while(condition){              
+          
+          if(verificarMes(dadosCLT[i][5]))
+          var nome = dadosCLT[i][1];
+          var saldo = Math.floor(dadosCLT[i][6]);
+          
+          if (saldo >= 1) {
+            mensagemMap.set(nome, saldo);
+          }
+
+          var currentI = i;
+          currentI++
+
+          if(currentI >= dadosCLT.length || dadosCLT[currentI][2] === "" ){
+            condition = false;
+          }
+
+          i++;
+        }
+      }
+
+      if(mensagemMap.size > 0) {
+        mensagem += ":spiral_calendar_pad: Período: " + ano + "\n";
+        mensagemMap.forEach(function(valor, chave){
+        mensagem += chave + " --- " + valor + " dia(s)\n";
+      })
+          
+        mensagem += "\n";
+      }   
+    }
+  }
+
+  return mensagem
+}
+
+function construirMensagemPJ(planilha, mensagem){
+  var abaPJ = planilha.getSheetByName("LIMITE PJ");
+  var dadosPJ = abaPJ.getDataRange().getValues();
+
+    for (var i = 3; i < dadosPJ.length; i++){
+    if(dadosPJ[i][2] != ""){
+      var condition = true;
+      var mensagemMap = new Map()
+      var ano = dadosPJ[i-1][1]
+
+      if(verificarAno(ano) === "maior"){
+        while(condition){              
+          var nome = dadosPJ[i][1];
+          var saldo = Math.floor(dadosPJ[i][6]);
+          
+          if (saldo >= 1) {
+            mensagemMap.set(nome, saldo);
+          }
+
+          var currentI = i;
+          currentI++
+
+          if(currentI >= dadosPJ.length || dadosPJ[currentI][2] === "" ){
+            condition = false;
+          }
+
+          i++;
+        }
+      }
+
+      if(verificarAno(ano) === "igual"){
+        while(condition){              
+          
+          if(verificarMes(dadosPJ[i][5]))
+          var nome = dadosPJ[i][1];
+          var saldo = Math.floor(dadosPJ[i][6]);
+          
+          if (saldo >= 1) {
+            mensagemMap.set(nome, saldo);
+          }
+
+          var currentI = i;
+          currentI++
+
+          if(currentI >= dadosPJ.length || dadosPJ[currentI][2] === "" ){
+            condition = false;
+          }
+
+          i++;
+        }
+      }
+
+      if(mensagemMap.size > 0) {
+        mensagem += ":spiral_calendar_pad: Período: " + ano + "\n";
+        mensagemMap.forEach(function(valor, chave){
+        mensagem += chave + " --- " + valor + " dia(s)\n";
+      })
+          
+        mensagem += "\n";
+      }   
+    }
+  }
+
+  return mensagem
+}
+  
+function verificarAno(ano) {
+  var anoAtual = new Date().getFullYear();
+  var anoMap = ano.split("/");
+
+  if(anoAtual > anoMap[1]){
+    return "maior";
+  } else if (anoAtual == anoMap[1]) {
+      return "igual"
+  } else {
+      return false;
+  }
+}
+
+function verificarMes(data){
+  var mesAtual = new Date().getMonth() + 1;
+  var dataVerificar = new Date(data);
+  var mesLimite = dataVerificar.getMonth() + 1;
+  
+  if(mesLimite <= mesAtual){
+    return true;
+  } else{
+    return false;
+  }
+}
